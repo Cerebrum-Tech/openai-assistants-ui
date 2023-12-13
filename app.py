@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import time
 import glob
 import base64
@@ -8,12 +9,16 @@ import streamlit as st
 import openai
 from openai.types.beta.threads import MessageContentImageFile
 
+load_dotenv()
+
 
 # OpenAI API
-api_key = "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"
+api_key = os.environ.get("OPENAI_API_KEY")
 client = openai.OpenAI(api_key=api_key)
-assistant_id = "asst_JSeuMy5nNMA6TBs230P4nxP6"
-instructions = os.environ.get("RUN_INSTRUCTIONS", "")
+assistant_id = os.environ.get("ASSISTANT_ID")
+instructions = os.environ.get(
+    "RUN_INSTRUCTIONS") or "You are a helpful assistant that answers questions based on uploaded files."
+bot_title = os.environ.get("BOT_TITLE") or "Cere Code Interpreter"
 
 
 def create_thread(content, file):
@@ -152,6 +157,7 @@ def main():
 
     instructions = st.sidebar.text_area("Enter your instructions", height=200,
                                         value="You are a helpful assistant that answers questions based on uploaded files.")
+
     user_msg = st.chat_input(
         "Message", on_submit=disable_form, disabled=st.session_state.in_progress
     )
