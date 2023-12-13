@@ -9,10 +9,10 @@ import openai
 from openai.types.beta.threads import MessageContentImageFile
 
 
-# OpenAI APIキーの設定
-api_key = os.environ.get("OPENAI_API_KEY")
+# OpenAI API
+api_key = "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"
 client = openai.OpenAI(api_key=api_key)
-assistant_id = os.environ.get("ASSISTANT_ID")
+assistant_id = "asst_JSeuMy5nNMA6TBs230P4nxP6"
 instructions = os.environ.get("RUN_INSTRUCTIONS", "")
 
 
@@ -57,15 +57,24 @@ def get_message_value_list(messages):
     messages_value_list = []
     for message in messages:
         message_content = ""
-        print(message)
-        if not isinstance(message, MessageContentImageFile):
+        print("message", message)
+        if not isinstance(message, MessageContentImageFile) and hasattr(message.content[0], "text"):
+            print("message.content:", message.content)
             message_content = message.content[0].text
             annotations = message_content.annotations
         else:
-            image_file = client.files.retrieve(message.file_id)
+            print("message.file_id:", message.content[0].image_file.file_id)
+            image_data = client.files.content(
+                message.content[0].image_file.file_id)
+            image_data_bytes = image_data.read()
+            image_data_base64 = base64.b64encode(image_data_bytes).decode()
+            image_tag = f'<img src="data:image/png;base64,{image_data_base64}" width="400">'
+            message_content = st.markdown(image_tag, True)
             messages_value_list.append(
-                f"Click <here> to download {image_file.filename}"
+                f"{image_tag}\n\n"
             )
+            annotations = []
+            continue
         citations = []
         for index, annotation in enumerate(annotations):
             message_content.value = message_content.value.replace(
@@ -93,7 +102,8 @@ def get_message_value_list(messages):
 def get_message_list(thread, run):
     completed = False
     while not completed:
-        run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+        run = client.beta.threads.runs.retrieve(
+            thread_id=thread.id, run_id=run.id)
         print("run.status:", run.status)
         messages = client.beta.threads.messages.list(thread_id=thread.id)
         print("messages:", "\n".join(get_message_value_list(messages)))
@@ -138,10 +148,14 @@ def disable_form():
 
 
 def main():
-    st.title("Assistants API UI")
+    st.title("Cere Code Interpreter Demo")
+
+    instructions = st.sidebar.text_area("Enter your instructions", height=200,
+                                        value="You are a helpful assistant that answers questions based on uploaded files.")
     user_msg = st.chat_input(
         "Message", on_submit=disable_form, disabled=st.session_state.in_progress
     )
+
     uploaded_file = st.sidebar.file_uploader(
         "Upload a file",
         type=[
@@ -170,7 +184,8 @@ def main():
             st.markdown(response, True)
 
         st.session_state.chat_log.append({"name": "user", "msg": user_msg})
-        st.session_state.chat_log.append({"name": "assistant", "msg": response})
+        st.session_state.chat_log.append(
+            {"name": "assistant", "msg": response})
         st.session_state.in_progress = False
         st.rerun()
     render_chat()
