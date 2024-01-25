@@ -13,14 +13,13 @@ RUN apt-get update && apt-get install -y \
 
 RUN git clone https://github.com/streamlit/streamlit-example.git .
 
-RUN pip3 install -r requirements.txt
 
-RUN pip3 install poetry
+RUN pip3 install --no-cache-dir streamlit
 COPY . .
-RUN poetry install
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+
 
 EXPOSE 8501
-
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 
 ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

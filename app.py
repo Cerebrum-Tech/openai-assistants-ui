@@ -4,7 +4,6 @@ import time
 import glob
 import base64
 import re
-
 import streamlit as st
 import openai
 from openai.types.beta.threads import MessageContentImageFile
@@ -17,8 +16,10 @@ api_key = os.environ.get("OPENAI_API_KEY")
 client = openai.OpenAI(api_key=api_key)
 assistant_id = os.environ.get("ASSISTANT_ID")
 instructions = os.environ.get(
-    "RUN_INSTRUCTIONS") or "You are a helpful assistant that answers questions based on uploaded files."
+    "RUN_INSTRUCTIONS") or None
 bot_title = os.environ.get("BOT_TITLE") or "Cere Code Interpreter"
+settings_on = os.environ.get("SETTINGS_ON") or False
+file_ids = [os.environ.get("FILE_ID")]
 
 
 def create_thread(content, file):
@@ -153,31 +154,39 @@ def disable_form():
 
 
 def main():
-    st.title("Cere Code Interpreter Demo")
 
-    instructions = st.sidebar.text_area("Enter your instructions", height=200,
-                                        value="You are a helpful assistant that answers questions based on uploaded files.")
+    st.set_page_config(
+        page_title="Cere Code Interpreter",
+        page_icon=":robot_face:",
+    )
+    st.title(bot_title)
 
+    if settings_on:
+
+        instructions = st.sidebar.text_area("Enter your instructions", height=200,
+                                            value="You are a helpful assistant that answers questions based on uploaded files.")
+        uploaded_file = st.sidebar.file_uploader(
+            "Upload a file",
+            type=[
+                "txt",
+                "pdf",
+                "png",
+                "jpg",
+                "jpeg",
+                "csv",
+                "json",
+                "geojson",
+                "xlsx",
+                "xls",
+            ],
+            disabled=st.session_state.in_progress,
+        )
+    else:
+        uploaded_file = None
     user_msg = st.chat_input(
         "Message", on_submit=disable_form, disabled=st.session_state.in_progress
     )
 
-    uploaded_file = st.sidebar.file_uploader(
-        "Upload a file",
-        type=[
-            "txt",
-            "pdf",
-            "png",
-            "jpg",
-            "jpeg",
-            "csv",
-            "json",
-            "geojson",
-            "xlsx",
-            "xls",
-        ],
-        disabled=st.session_state.in_progress,
-    )
     if user_msg:
         render_chat()
         with st.chat_message("user"):
